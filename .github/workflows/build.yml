@@ -4,18 +4,17 @@ name: Build
 
 jobs:
   build:
+    name: Build
     runs-on: ubuntu-latest
     container:
       image: zmkfirmware/zmk-build-arm:stable
-    name: Build
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Cache west modules
         uses: actions/cache@v4
-        env:
-          cache-name: cache-zephyr-modules
         with:
           path: |
             modules/
@@ -23,11 +22,9 @@ jobs:
             zephyr/
             bootloader/
             zmk/
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('manifest-dir/west.yml') }}
+          key: ${{ runner.os }}-zephyr-${{ hashFiles('config/west.yml') }}
           restore-keys: |
-            ${{ runner.os }}-build-${{ env.cache-name }}-
-            ${{ runner.os }}-build-
-            ${{ runner.os }}-
+            ${{ runner.os }}-zephyr-
 
       - name: West Init
         run: west init -l config
@@ -39,31 +36,25 @@ jobs:
         run: west zephyr-export
 
       - name: West Build (Sofle Left)
-        run: west build -s zmk/app -b nice_nano_v2 -- -DSHIELD=sofle_left -DZMK_CONFIG="${GITHUB_WORKSPACE}/config"
+        run: west build -s zmk/app -b nice_nano -- -DSHIELD=sofle_left -DZMK_CONFIG="${GITHUB_WORKSPACE}/config"
 
-      - name: Sofle Left Kconfig file
-        run: cat build/zephyr/.config | grep -v "^#" | grep -v "^$"
-
-      - name: Rename zmk.uf2
-        run: cp build/zephyr/zmk.uf2 sofle_left_nice_nano_v2.uf2
+      - name: Rename zmk.uf2 (Sofle Left)
+        run: cp build/zephyr/zmk.uf2 sofle_left_nice_nano.uf2
 
       - name: Archive (Sofle Left)
         uses: actions/upload-artifact@v4
         with:
           name: firmware
-          path: sofle_left_nice_nano_v2.uf2
+          path: sofle_left_nice_nano.uf2
 
       - name: West Build (Sofle Right)
         run: west build --pristine -s zmk/app -b nice_nano -- -DSHIELD=sofle_right -DZMK_CONFIG="${GITHUB_WORKSPACE}/config"
 
-      - name: Sofle Right Kconfig file
-        run: cat build/zephyr/.config | grep -v "^#" | grep -v "^$"
-
-      - name: Rename zmk.uf2
-        run: cp build/zephyr/zmk.uf2 sofle_right_nice_nano_v2.uf2
+      - name: Rename zmk.uf2 (Sofle Right)
+        run: cp build/zephyr/zmk.uf2 sofle_right_nice_nano.uf2
 
       - name: Archive (Sofle Right)
         uses: actions/upload-artifact@v4
         with:
           name: firmware
-          path: sofle_right_nice_nano_v2.uf2
+          path: sofle_right_nice_nano.uf2
